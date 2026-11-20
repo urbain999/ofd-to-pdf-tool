@@ -6,7 +6,9 @@
 
 ## 下载
 
-到本仓库 [Releases](../../releases) 页面下载 `OFD转PDF工具.exe`（约 72 MB），下载后直接双击运行即可。
+直接下载：[OFD-to-PDF-Tool.exe（约 72 MB）](https://github.com/urbain999/ofd-to-pdf-tool/releases/download/v1.0.0/OFD-to-PDF-Tool.exe)
+
+也可到本仓库 [Releases](https://github.com/urbain999/ofd-to-pdf-tool/releases) 页面查看全部版本。下载后直接双击运行即可。
 
 > 该 exe 为 portable 单文件版，运行时自解压到临时目录，不写注册表、不依赖外部文件。拷到 U 盘给别人也能用。
 
