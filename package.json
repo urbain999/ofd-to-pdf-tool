@@ -1,0 +1,36 @@
+{
+  "name": "ofd-to-pdf-gui",
+  "version": "1.0.0",
+  "description": "OFD 转 PDF 图形界面工具 - 拖拽即转，绿色免安装",
+  "main": "main.js",
+  "author": "Hu Yonggang",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "@miconvert/ofd-to-pdf": "0.2.3",
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "electron": "33.2.0",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.ofd2pdf.gui",
+    "productName": "OFD转PDF工具",
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "node_modules/**/*"
+    ]
+  }
+}

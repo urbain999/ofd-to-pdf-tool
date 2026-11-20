@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OFD 转 PDF 工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+    background: #f5f7fa;
+    color: #2c3e50;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  .header { text-align: center; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; color: #1a73e8; margin-bottom: 6px; }
+  .header p { font-size: 13px; color: #7b8794; }
+
+  .dropzone {
+    border: 2px dashed #b8c6db;
+    border-radius: 14px;
+    background: #fff;
+    padding: 34px 20px;
+    text-align: center;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .dropzone:hover { border-color: #1a73e8; background: #f0f6ff; }
+  .dropzone.dragover {
+    border-color: #1a73e8;
+    background: #e8f0fe;
+    transform: scale(1.01);
+  }
+  .dropzone .icon { font-size: 46px; margin-bottom: 10px; }
+  .dropzone h2 { font-size: 17px; margin-bottom: 8px; color: #34495e; }
+  .dropzone p { font-size: 13px; color: #95a5a6; margin-bottom: 18px; }
+
+  .btn {
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 26px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+  }
+  .btn:hover { background: #1557b0; }
+  .btn:disabled { background: #b8c6db; cursor: not-allowed; }
+
+  .list-wrap {
+    margin-top: 20px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    max-height: 210px;
+    overflow-y: auto;
+    display: none;
+  }
+  .list-wrap.show { display: block; }
+  .list-title { font-size: 13px; color: #7b8794; margin-bottom: 10px; }
+  .item {
+    display: flex;
+    align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px solid #eef1f5;
+    font-size: 13px;
+  }
+  .item:last-child { border-bottom: none; }
+  .item .status { width: 20px; font-size: 15px; margin-right: 8px; text-align: center; }
+  .item .name { flex: 1; word-break: break-all; }
+  .item .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+  }
+  .badge.wait { background: #fff3cd; color: #856404; }
+  .badge.ok { background: #d4edda; color: #155724; cursor: pointer; }
+  .badge.fail { background: #f8d7da; color: #721c24; }
+  .badge.run { background: #cce5ff; color: #004085; }
+
+  .footer { text-align: center; margin-top: 16px; font-size: 12px; color: #b0b8c4; }
+  .summary {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    display: none;
+  }
+  .summary.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>OFD 转 PDF 工具</h1>
+    <p>点击选择，或把 OFD 文件拖进下面的框里，自动生成同名 PDF（保存在原文件旁边）</p>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="icon">📄</div>
+    <h2>把 OFD 文件拖到这里</h2>
+    <p>支持一次拖入多个文件 · 中文路径没问题</p>
+    <button class="btn" id="chooseBtn">打开 OFD 文件</button>
+  </div>
+
+  <div class="list-wrap" id="listWrap">
+    <div class="list-title">转换列表：</div>
+    <div id="list"></div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div class="footer">绿色免安装 · 转换内核本地运行，文件不上传网络</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const chooseBtn = document.getElementById('chooseBtn');
+  const listWrap = document.getElementById('listWrap');
+  const list = document.getElementById('list');
+  const summary = document.getElementById('summary');
+
+  let items = [];   // { path, name, state, size, error }
+  let running = false;
+
+  function render() {
+    list.innerHTML = '';
+    items.forEach((it, idx) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      const status = it.state === 'ok' ? '✅' : it.state === 'fail' ? '❌' : it.state === 'run' ? '⏳' : '📄';
+      let badge = '';
+      if (it.state === 'wait') badge = '<span class="badge wait">待转换</span>';
+      else if (it.state === 'run') badge = '<span class="badge run">转换中…</span>';
+      else if (it.state === 'ok') badge = '<span class="badge ok" data-idx="' + idx + '" title="点击打开所在文件夹">'
+        + '已生成 ' + (it.size ? (it.size/1024).toFixed(1) + ' KB' : '') + '</span>';
+      else if (it.state === 'fail') badge = '<span class="badge fail" title="' + (it.error||'') + '">失败</span>';
+      row.innerHTML = '<span class="status">' + status + '</span><span class="name">' + it.name + '</span>' + badge;
+      list.appendChild(row);
+    });
+    listWrap.classList.toggle('show', items.length > 0);
+    list.querySelectorAll('.badge.ok').forEach(b => {
+      b.addEventListener('click', () => {
+        const it = items[Number(b.dataset.idx)];
+        if (it && it.output) window.api.showItem(it.output);
+      });
+    });
+  }
+
+  function addFiles(paths) {
+    const ofds = paths.filter(p => p && /\.ofd$/i.test(p));
+    if (!ofds.length) return;
+    ofds.forEach(p => {
+      const name = p.split(/[\\/]/).pop();
+      // 避免重复添加
+      if (!items.some(it => it.path === p)) {
+        items.push({ path: p, name, state: 'wait' });
+      }
+    });
+    render();
+    runConvert();
+  }
+
+  async function runConvert() {
+    if (running) return;
+    const pendingIdx = items.map((it, i) => it.state === 'wait' ? i : -1).filter(i => i >= 0);
+    if (!pendingIdx.length) return;
+    running = true;
+    chooseBtn.disabled = true;
+
+    // 进度回调
+    window.api.onProgress((d) => {
+      const it = items.find(x => x.name === d.name && x.state === 'run');
+      if (!it) return;
+      if (d.phase === 'done') { it.state = 'ok'; it.size = d.size; }
+      else if (d.phase === 'fail') { it.state = 'fail'; it.error = d.error; }
+      render();
+    });
+
+    // 逐个转（保持列表顺序），收集本次要转的路径
+    const paths = pendingIdx.map(i => items[i].path);
+    pendingIdx.forEach(i => { items[i].state = 'run'; });
+    render();
+
+    const res = await window.api.convert(paths);
+
+    // 用返回结果兜底更新状态（防止进度事件遗漏）
+    if (res && Array.isArray(res.results)) {
+      res.results.forEach(r => {
+        const it = items.find(x => x.name === r.name);
+        if (!it) return;
+        if (r.ok) { it.state = 'ok'; it.size = r.size; it.output = r.output; }
+        else { it.state = 'fail'; it.error = r.error; }
+      });
+    }
+    render();
+    summary.textContent = '转换完成：成功 ' + (res.ok||0) + ' 个，失败 ' + (res.fail||0) + ' 个';
+    summary.classList.add('show');
+    running = false;
+    chooseBtn.disabled = false;
+  }
+
+  chooseBtn.addEventListener('click', async () => {
+    const paths = await window.api.chooseFiles();
+    if (paths && paths.length) addFiles(paths);
+  });
+
+  // 点击整个拖拽区也能选文件
+  dropzone.addEventListener('click', (e) => {
+    if (e.target === chooseBtn) return;
+    chooseBtn.click();
+  });
+
+  // 拖拽
+  ['dragenter', 'dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    });
+  });
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (!dt || !dt.files) return;
+    const paths = [];
+    for (const f of dt.files) {
+      const p = window.api.getPathForFile(f);
+      if (p) paths.push(p);
+    }
+    addFiles(paths);
+  });
+</script>
+</body>
+</html>

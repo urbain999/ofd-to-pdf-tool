@@ -1,0 +1,30 @@
+Third-Party Notices / 第三方组件声明
+
+本工具包含以下第三方开源组件，其版权与许可证归各自作者所有：
+
+1. @miconvert/ofd-to-pdf (version 0.2.3)
+   License: Apache-2.0
+   Author: Antigravity <dev@miconvert.com>
+   Repository: https://github.com/huuhuybn/miconvert-ofd-to-pdf
+   Homepage: https://miconvert.com/en/ofd-to-pdf
+   Copyright and license text are included in the package under
+   node_modules/@miconvert/ofd-to-pdf/LICENSE.
+
+2. pdf-lib (version 1.17.1)
+   License: MIT
+   Repository: https://github.com/Hopding/pdf-lib
+   Copyright and license text are included in the package under
+   node_modules/pdf-lib/LICENSE.md.
+
+3. Electron (version 33.2.0) — build/runtime dependency
+   License: MIT
+   Repository: https://github.com/electron/electron
+   License text is included in the distributed application as
+   LICENSE.electron.txt and LICENSES.chromium.html.
+
+4. electron-builder (version 24.13.3) — build-time dependency
+   License: MIT
+   Repository: https://github.com/electron-userland/electron-builder
+
+The above components are distributed under their respective licenses. This
+project's own source code is licensed under the MIT License (see LICENSE).
